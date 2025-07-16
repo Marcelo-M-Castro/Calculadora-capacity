@@ -92,4 +92,39 @@ if file_entrantes and file_tma:
 
     # Resultado
     st.header("📊 Resultados e Tabela Final")
-    st.dataframe(df
+    st.dataframe(df_entrantes)
+
+    # Exportação
+    to_excel = io.BytesIO()
+    df_entrantes.to_excel(to_excel, index=True)
+    st.download_button("📥 Baixar resultado em Excel", data=to_excel.getvalue(), file_name="df_entrantes.xlsx")
+
+    # 📈 Linha de capacidade
+    st.subheader("📈 Capacity calculado por hora")
+    fig_cap, ax = plt.subplots()
+    df_entrantes[['Capacity_Calculado', 'Capacity_Calculado_pico', 'Capacity_Calculado_vale']].plot(ax=ax)
+    ax.set_title("Capacidade calculada por hora") 
+    ax.set_ylabel("Nº de Agentes") 
+    ax.set_xlabel("Hora") 
+    st.pyplot(fig_cap)
+
+    # 📊 Entrantes por dia (barras)
+    st.subheader("📊 Volume total de entrantes por dia")
+    entrantes_por_dia = df_entrantes[cols_to_sum].sum().sort_index()
+    fig_dia, ax = plt.subplots(figsize=(10, 4))
+    entrantes_por_dia.plot(kind='bar', ax=ax)
+    ax.set_title("Total de entrantes por dia")
+    ax.set_ylabel("Quantidade")
+    ax.tick_params(axis='x', rotation=45)
+    st.pyplot(fig_dia)
+
+    # 🔥 Heatmap hora x dia
+    st.subheader("🔥 Heatmap de Entrantes (Hora x Dia)")
+    heat_data = df_entrantes[cols_to_sum]
+    fig_heat, ax = plt.subplots(figsize=(12, 6))
+    sns.heatmap(heat_data, cmap="Blues", annot=False, ax=ax)
+    ax.set_title("Entrantes por Hora x Dia")
+    st.pyplot(fig_heat)
+
+else:
+    st.warning("Por favor, envie as duas planilhas para iniciar a análise.")
