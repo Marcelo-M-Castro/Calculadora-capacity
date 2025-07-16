@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import io
 
 st.set_page_config(page_title="Calculadora de Capacity", layout="wide")
@@ -89,6 +90,17 @@ if file_entrantes and file_tma:
     df_entrantes['Capacity_Calculado_vale'] = np.ceil((df_entrantes['madia_vale'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots).astype(int)
     df_entrantes['Capacity_Calculado'] = df_entrantes['Capacity_Calculado'].astype(int)
 
+    # Indicadores principais
+    st.header("📌 Indicadores Principais (Big Numbers)")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("📊 Média Geral Média", f"{df_entrantes['media_geral'].mean():.1f}")
+    col2.metric("🔼 Maior Pico de Entrantes", f"{df_entrantes['Media_pico'].max():.0f}")
+    col3.metric("👥 Máximo Capacity Pico", f"{df_entrantes['Capacity_Calculado_pico'].max():.0f} agentes")
+    hora_top = df_entrantes[df_entrantes[cols_to_sum].sum(axis=1) == df_entrantes[cols_to_sum].sum(axis=1).max()].index[0]
+    col4.metric("⏰ Hora com mais entrantes", f"{hora_top}h")
+
+    st.markdown("---")
+
     # Resultado
     st.header("📊 Resultados e Tabela Final")
     st.dataframe(df_entrantes)
@@ -98,21 +110,49 @@ if file_entrantes and file_tma:
     df_entrantes.to_excel(to_excel, index=True)
     st.download_button("📥 Baixar resultado em Excel", data=to_excel.getvalue(), file_name="df_entrantes.xlsx")
 
-    # Gráficos
-    st.header("📉 Gráficos de Análise")
-    fig1, ax1 = plt.subplots(figsize=(10, 4))
-    ax1.bar(coluna_somas.index.astype(str), coluna_somas.values, color='skyblue')
-    ax1.set_title("Entrantes por Dia")
-    ax1.set_ylabel("Quantidade")
-    ax1.tick_params(axis='x', rotation=45)
-    st.pyplot(fig1)
+    # 📈 Linha de capacidade
+    st.subheader("📈 Capacity calculado por hora")
+    fig_cap, ax = plt.subplots()
+    df_entrantes[['Capacity_Calculado', 'Capacity_Calculado_pico', 'Capacity_Calculado_vale']].plot(ax=ax)
+    ax.set_title("Capacidade calculada por hora") 
+    ax.set_ylabel("Nº de Agentes") 
+    ax.set_xlabel("Hora") 
+    st.pyplot(fig_cap)
 
-    fig2, ax2 = plt.subplots(figsize=(10, 4))
-    df_entrantes[['Capacity_Calculado', 'Capacity_Calculado_pico', 'Capacity_Calculado_vale']].plot(ax=ax2)
-    ax2.set_title("Capacity Calculado por Hora")
-    ax2.set_ylabel("Agentes Necessários")
-    ax2.set_xlabel("Hora")
-    st.pyplot(fig2)
+    # 📊 Entrantes por dia (barras)
+    st.subheader("📊 Volume total de entrantes por dia")
+    entrantes_por_dia = df_entrantes[cols_to_sum].sum().sort_index()
+    fig_dia, ax = plt.subplots(figsize=(10, 4))
+    entrantes_por_dia.plot(kind='bar', ax=ax)
+    ax.set_title("Total de entrantes por dia")
+    ax.set_ylabel("Quantidade")
+    ax.tick_params(axis='x', rotation=45)
+    st.pyplot(fig_dia)
+
+    # 🔥 Heatmap hora x dia
+    st.subheader("🔥 Heatmap de Entrantes (Hora x Dia)")
+    heat_data = df_entrantes[cols_to_sum]
+    fig_heat, ax = plt.subplots(figsize=(12, 6))
+    sns.heatmap(heat_data, cmap="Blues", annot=False, ax=ax)
+    ax.set_title("Entrantes por Hora x Dia")
+    st.pyplot(fig_heat)
+
+    # ⏱️ Dispersão entre média geral e tempo de atendimento
+    st.subheader("⏱️ Relação entre Média Geral e Tempo de Atendimento")
+    fig_disp, ax = plt.subplots()
+    ax.scatter(df_entrantes['media_geral'], df_entrantes['Average Talk Time (seconds)'], color='orange')
+    ax.set_xlabel("Média Geral de Entrantes")
+    ax.set_ylabel("Tempo Médio de Atendimento (s)")
+    ax.set_title("Dispersão: Média x Tempo de Atendimento")
+    st.pyplot(fig_disp)
+
+    # 📉 Histograma da média geral
+    st.subheader("📉 Distribuição da Média Geral")
+    fig_hist, ax = plt.subplots()
+    df_entrantes['media_geral'].plot.hist(bins=10, ax=ax, color='skyblue')
+    ax.set_title("Histograma - Média Geral por Hora")
+    ax.set_xlabel("Média Geral")
+    st.pyplot(fig_hist)
 
 else:
     st.warning("Por favor, envie as duas planilhas para iniciar a análise.")
