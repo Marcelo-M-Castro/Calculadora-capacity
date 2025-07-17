@@ -1,61 +1,69 @@
-📈 Calculadora de Capacity com Análise de Entrantes
-Este é um aplicativo interativo desenvolvido com Streamlit para auxiliar na análise de capacidade operacional com base em dados de entrantes e tempo médio de atendimento (TMA). Ideal para times de atendimento, planejamento ou operações que precisam dimensionar equipes com mais precisão.
+# 📈 Calculadora de Capacity com Análise de Entrantes
 
-🚀 Funcionalidades
-Upload de duas planilhas: Entrantes e TMA
+Este é um aplicativo interativo desenvolvido com **Streamlit** para auxiliar na análise de **capacidade operacional** com base em dados de **entrantes** e **tempo médio de atendimento (TMA)**. Ideal para times de atendimento, planejamento ou operações que precisam dimensionar equipes com mais precisão.
 
-Cálculo automático de:
+---
 
-Média geral de entrantes por hora
+## 🚀 Funcionalidades
 
-Médias de pico e vale
+- Upload de duas planilhas: **Entrantes** e **TMA**
+- Cálculo automático de:
+  - Média geral de entrantes por hora
+  - Médias de pico e vale
+  - Capacidade necessária por hora
+- Visualizações:
+  - Tabela dinâmica com métricas calculadas
+  - Gráficos de linha, barra e heatmap
+- Exportação dos resultados para Excel
 
-Capacidade necessária por hora
+---
 
-Visualizações:
+## 📂 Formato esperado das planilhas
 
-Tabela dinâmica com métricas calculadas
+### 🟢 Entrantes
 
-Gráficos de linha, barra e heatmap
+A planilha de entrantes deve conter as seguintes colunas:
 
-Exportação dos resultados para Excel
+| Coluna   | Descrição                                   |
+|----------|---------------------------------------------|
+| `Date`   | Data no formato `YYYY-MM-DD`                |
+| `Hour`   | Hora do dia (ex: `8`, `15`, `22`)           |
+| `Entrantes` | Quantidade de entradas/chamadas por hora |
 
-📂 Formato esperado das planilhas
-🟢 Entrantes
-Colunas obrigatórias:
+### 🔵 TMA
 
-Date: data no formato YYYY-MM-DD
+A planilha de TMA (Tempo Médio de Atendimento) deve conter:
 
-Hour: hora do dia (inteiro ou string no formato HH)
+| Coluna                | Descrição                                       |
+|------------------------|-------------------------------------------------|
+| `Hour`                | Hora correspondente ao atendimento              |
+| `Average Talk Time`   | Tempo médio no formato `MM:SS` (minutos:segundos) |
 
-Entrantes: quantidade de chamadas/entradas por hora
+---
 
-🔵 TMA
-Colunas obrigatórias:
+## 🧮 Parâmetros ajustáveis
 
-Hour: hora correspondente à média
+Durante a execução do app, é possível configurar os seguintes parâmetros:
 
-Average Talk Time: tempo médio de atendimento no formato MM:SS
+- **Quantidade de slots**: número de agentes disponíveis
+- **Pausa (%)**: percentual de tempo destinado a pausas
+- **Absenteísmo (%)**: percentual estimado de ausências
 
-🧮 Parâmetros ajustáveis
-Durante a execução, o usuário pode ajustar:
+Esses valores são usados no cálculo da **capacidade real ajustada**, considerando indisponibilidades.
 
-Quantidade de slots (agentes disponíveis)
+---
 
-Percentual de pausa
+## 📊 Visualizações
 
-Percentual de absenteísmo
+O aplicativo apresenta as seguintes visualizações interativas:
 
-Esses parâmetros são usados no cálculo da capacidade necessária por hora.
+- **📋 Tabela final**: com dados de entrada, TMA e capacidade calculada
+- **📈 Gráfico de linha**: capacidade geral, pico e vale por hora
+- **📊 Gráfico de barras**: volume total de entrantes por dia
+- **🔥 Heatmap (hora x dia)**: intensidade de entrantes ao longo da semana
 
-📊 Visualizações
-Tabela final com todos os indicadores
+---
 
-Gráfico de capacidade calculada (geral, pico e vale)
+## 💾 Exportação
 
-Gráfico de barras com total de entrantes por dia
-
-Heatmap visualizando o volume de entrantes por hora x dia
-
-💾 Exportação
-É possível baixar o resultado da análise em um arquivo .xlsx diretamente pelo app.
+Após a análise, é possível **baixar os resultados em Excel (`.xlsx`)** com todos os dados processados diretamente pela interface do app.
