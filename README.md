@@ -71,3 +71,4 @@ Após a análise, é possível **baixar os resultados em Excel (`.xlsx`)** com t
 
 https://calculadora-capacity.streamlit.app/
 
+[calculadora_capacity.pdf](https://github.com/user-attachments/files/21302264/calculadora_capacity.pdf)
