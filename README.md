@@ -67,3 +67,7 @@ O aplicativo apresenta as seguintes visualizações interativas:
 ## 💾 Exportação
 
 Após a análise, é possível **baixar os resultados em Excel (`.xlsx`)** com todos os dados processados diretamente pela interface do app.
+
+
+https://calculadora-capacity.streamlit.app/
+
