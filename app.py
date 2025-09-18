@@ -162,35 +162,38 @@ if file_entrantes and file_tma:
     ax.set_title("Entrantes por Hora x Dia")
     st.pyplot(fig_heat)
 
-    # ==============================
-    # Perguntas e Respostas (Gemini) baseado na Tabela Final
-    # ==============================
-    st.header("💬 Pergunte sobre os dados (Tabela Final)")
+# ==============================
+# Perguntas e Respostas (Gemini) baseado em resumo da Tabela Final
+# ==============================
+st.header("💬 Pergunte sobre os dados (Resumo Estatístico da Tabela Final)")
 
-    user_question = st.text_area("Digite sua pergunta:", placeholder="Ex: Qual foi a hora com maior capacity calculado?")
-    if st.button("Responder"):
-        if user_question.strip():
-            # Apenas resultados finais
-            df_final = df_entrantes[['media_geral', 'Media_pico', 'madia_vale',
-                                     'Capacity_Calculado', 'Capacity_Calculado_pico', 'Capacity_Calculado_vale']].reset_index()
+user_question = st.text_area("Digite sua pergunta:", placeholder="Ex: Qual foi a hora com maior capacity calculado?")
 
-            data_sample = df_final.to_dict(orient="records")
+if st.button("Responder"):
+    if user_question.strip():
+        # Criar resumo da Tabela Final
+        df_resumo = pd.DataFrame({
+            "media_geral": [df_entrantes['media_geral'].mean()],
+            "media_pico": [df_entrantes['Media_pico'].max()],
+            "media_vale": [df_entrantes['madia_vale'].min()],
+            "top_5_capacity_pico": [df_entrantes['Capacity_Calculado_pico'].nlargest(5).tolist()],
+            "top_5_capacity_vale": [df_entrantes['Capacity_Calculado_vale'].nlargest(5).tolist()],
+            "top_5_horas_capacity": [df_entrantes['Capacity_Calculado'].nlargest(5).index.tolist()]
+        })
 
-            prompt = f"""
-            Você é um analista de dados de contact center.
-            Use os dados da Tabela Final abaixo para responder à pergunta do usuário de forma clara e objetiva.
+        data_sample = df_resumo.to_dict(orient="records")
 
-            Resultados consolidados (JSON): {json.dumps(data_sample, default=str)}
-            Pergunta: {user_question}
-            """
+        prompt = f"""
+        Você é um analista de dados de contact center.
+        Use os dados do resumo estatístico abaixo para responder à pergunta do usuário de forma clara, objetiva e em português.
 
-            try:
-                model = genai.GenerativeModel("gemini-2.5-flash")
-                response = model.generate_content(prompt)
-                st.success(response.text)
-            except Exception as e:
-                st.error(f"Erro ao chamar a API Gemini: {e}")
+        Resumo Estatístico (JSON): {json.dumps(data_sample, default=str)}
+        Pergunta: {user_question}
+        """
 
-else:
-    st.warning("Por favor, envie as duas planilhas para iniciar a análise.")
-
+        try:
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt)
+            st.success(response.text)
+        except Exception as e:
+            st.error(f"Erro ao chamar a API Gemini: {e}")
