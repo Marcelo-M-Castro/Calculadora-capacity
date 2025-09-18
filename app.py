@@ -1,25 +1,37 @@
-import streamlit as st
-import pandas as pd
+# app.py
+import os
+import io
+import json
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import io
+import streamlit as st
+import google.generativeai as genai
 
+# ==============================
+# Configurações iniciais
+# ==============================
 st.set_page_config(page_title="Calculadora de Capacity", layout="wide")
-st.title("📈 Calculadora de Capacity com Análise de Entrantes")
+st.title("📈 Calculadora de Capacity com Análise de Entrantes + Q&A")
 
 st.markdown("""
 Este app permite:
 - Upload de duas planilhas: **Entrantes** e **TMA**
 - Cálculos de média geral, pico e vale
 - Gráficos interativos e exportação para Excel
+- Perguntas e Respostas em linguagem natural usando Gemini API
 """)
 
+# Configuração da API Gemini
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# ==============================
 # Uploads
+# ==============================
 st.header("📁 Upload de Planilhas")
 
 col1, col2 = st.columns(2)
-
 with col1:
     file_entrantes = st.file_uploader("Envie a planilha de Entrantes", type="xlsx")
 with col2:
@@ -31,9 +43,17 @@ if file_entrantes and file_tma:
 
     st.success("Arquivos carregados com sucesso!")
 
-    # Pré-processamento
+    # ==============================
+    # Pré-processamento Entrantes
+    # ==============================
     df_inicial['Date'] = pd.to_datetime(df_inicial['Date']).dt.date
-    df_entrantes = df_inicial.pivot_table(index='Hour', columns='Date', values='Entrantes', aggfunc='sum', fill_value=0)
+    df_entrantes = df_inicial.pivot_table(
+        index='Hour',
+        columns='Date',
+        values='Entrantes',
+        aggfunc='sum',
+        fill_value=0
+    )
 
     stacked = df_entrantes.stack().reset_index(name='Entrantes')
     top5 = stacked.groupby('Hour')['Entrantes'].nlargest(5).groupby('Hour').mean().reset_index(name='Media_pico')
@@ -41,9 +61,11 @@ if file_entrantes and file_tma:
 
     colunas_para_media = [col for col in df_entrantes.columns if col not in ['Media_pico']]
     stacked = df_entrantes[colunas_para_media].stack().reset_index(name='Entrantes')
-    media_vale = (stacked.groupby('Hour')['Entrantes']
-                  .apply(lambda x: x.sort_values(ascending=False).iloc[5:])
-                  .groupby('Hour').mean().reset_index(name='madia_vale'))
+    media_vale = (
+        stacked.groupby('Hour')['Entrantes']
+        .apply(lambda x: x.sort_values(ascending=False).iloc[5:])
+        .groupby('Hour').mean().reset_index(name='madia_vale')
+    )
     df_entrantes = df_entrantes.merge(media_vale, left_index=True, right_on='Hour').set_index('Hour')
 
     cols_to_average = [col for col in df_entrantes.columns if col not in ['Media_pico', 'madia_vale']]
@@ -53,7 +75,9 @@ if file_entrantes and file_tma:
     coluna_somas = df_entrantes[cols_to_sum].sum()
     top_5_dias = coluna_somas.sort_values(ascending=False).head(5)
 
-    # TMA
+    # ==============================
+    # Pré-processamento TMA
+    # ==============================
     def parse_minutes_seconds(time_str):
         if isinstance(time_str, str):
             try:
@@ -64,7 +88,9 @@ if file_entrantes and file_tma:
         return pd.NaT
 
     df_TMA['Average Talk Time'] = df_TMA['Average Talk Time'].apply(parse_minutes_seconds)
-    df_TMA['Average Talk Time (seconds)'] = df_TMA['Average Talk Time'].apply(lambda x: x.total_seconds() if pd.notnull(x) else None)
+    df_TMA['Average Talk Time (seconds)'] = df_TMA['Average Talk Time'].apply(
+        lambda x: x.total_seconds() if pd.notnull(x) else None
+    )
     df_TMA['Average Talk Time (seconds)'] = df_TMA['Average Talk Time (seconds)'].fillna(0).astype(int)
 
     # Merge
@@ -74,7 +100,9 @@ if file_entrantes and file_tma:
         right_on='Hour'
     ).set_index('Hour')
 
-    # Inputs
+    # ==============================
+    # Parâmetros de cálculo
+    # ==============================
     st.header("⚙️ Parâmetros de Cálculo")
     quantidade_slots = st.number_input("Quantidade de Slots", min_value=1, value=10)
     pausa_percent = st.number_input("Tempo de Pausa (%)", min_value=0.0, value=15.0)
@@ -85,12 +113,20 @@ if file_entrantes and file_tma:
     ajuste = (1 + pausa) * (1 + absenteismo)
 
     df_entrantes['Qtd_Slots'] = quantidade_slots
-    df_entrantes['Capacity_Calculado'] = (df_entrantes['media_geral'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots
-    df_entrantes['Capacity_Calculado_pico'] = np.ceil((df_entrantes['Media_pico'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots).astype(int)
-    df_entrantes['Capacity_Calculado_vale'] = np.ceil((df_entrantes['madia_vale'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots).astype(int)
+    df_entrantes['Capacity_Calculado'] = (
+        df_entrantes['media_geral'] * df_entrantes['Average Talk Time (seconds)'] * ajuste
+    ) / 3600 / quantidade_slots
+    df_entrantes['Capacity_Calculado_pico'] = np.ceil(
+        (df_entrantes['Media_pico'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots
+    ).astype(int)
+    df_entrantes['Capacity_Calculado_vale'] = np.ceil(
+        (df_entrantes['madia_vale'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots
+    ).astype(int)
     df_entrantes['Capacity_Calculado'] = df_entrantes['Capacity_Calculado'].astype(int)
 
-    # Resultado
+    # ==============================
+    # Resultados
+    # ==============================
     st.header("📊 Resultados e Tabela Final")
     st.dataframe(df_entrantes)
 
@@ -103,9 +139,9 @@ if file_entrantes and file_tma:
     st.subheader("📈 Capacity calculado por hora")
     fig_cap, ax = plt.subplots()
     df_entrantes[['Capacity_Calculado', 'Capacity_Calculado_pico', 'Capacity_Calculado_vale']].plot(ax=ax)
-    ax.set_title("Capacidade calculada por hora") 
-    ax.set_ylabel("Nº de Agentes") 
-    ax.set_xlabel("Hora") 
+    ax.set_title("Capacidade calculada por hora")
+    ax.set_ylabel("Nº de Agentes")
+    ax.set_xlabel("Hora")
     st.pyplot(fig_cap)
 
     # 📊 Entrantes por dia (barras)
@@ -125,6 +161,31 @@ if file_entrantes and file_tma:
     sns.heatmap(heat_data, cmap="Blues", annot=False, ax=ax)
     ax.set_title("Entrantes por Hora x Dia")
     st.pyplot(fig_heat)
+
+    # ==============================
+    # Perguntas e Respostas (Gemini)
+    # ==============================
+    st.header("💬 Pergunte sobre os dados")
+
+    user_question = st.text_area("Digite sua pergunta:", placeholder="Ex: Qual foi a hora com maior capacity calculado?")
+    if st.button("Responder"):
+        if user_question.strip():
+            # resumir os dados enviados para o modelo
+            data_sample = df_entrantes.reset_index().to_dict(orient="records")
+
+            prompt = f"""
+            Você é um analista de dados de contact center.
+            Use os dados abaixo para responder a pergunta do usuário de forma clara e objetiva.
+            Dados (JSON): {json.dumps(data_sample[:200])}
+            Pergunta: {user_question}
+            """
+
+            try:
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                response = model.generate_content(prompt)
+                st.success(response.text)
+            except Exception as e:
+                st.error(f"Erro ao chamar a API Gemini: {e}")
 
 else:
     st.warning("Por favor, envie as duas planilhas para iniciar a análise.")
