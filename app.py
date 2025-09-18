@@ -20,7 +20,7 @@ Este app permite:
 - Upload de duas planilhas: **Entrantes** e **TMA**
 - Cálculos de média geral, pico e vale
 - Gráficos interativos e exportação para Excel
-- Perguntas e Respostas em linguagem natural usando Gemini API
+- Perguntas e respostas em linguagem natural usando Gemini API
 """)
 
 # Configuração da API Gemini
@@ -163,20 +163,24 @@ if file_entrantes and file_tma:
     st.pyplot(fig_heat)
 
     # ==============================
-    # Perguntas e Respostas (Gemini)
+    # Perguntas e Respostas (Gemini) baseado na Tabela Final
     # ==============================
-    st.header("💬 Pergunte sobre os dados")
+    st.header("💬 Pergunte sobre os dados (Tabela Final)")
 
     user_question = st.text_area("Digite sua pergunta:", placeholder="Ex: Qual foi a hora com maior capacity calculado?")
     if st.button("Responder"):
         if user_question.strip():
-            # resumir os dados enviados para o modelo
-            data_sample = df_entrantes.reset_index().to_dict(orient="records")
+            # Apenas resultados finais
+            df_final = df_entrantes[['media_geral', 'Media_pico', 'madia_vale',
+                                     'Capacity_Calculado', 'Capacity_Calculado_pico', 'Capacity_Calculado_vale']].reset_index()
+
+            data_sample = df_final.to_dict(orient="records")
 
             prompt = f"""
             Você é um analista de dados de contact center.
-            Use os dados abaixo para responder a pergunta do usuário de forma clara e objetiva.
-            Dados (JSON): {json.dumps(data_sample[:200])}
+            Use os dados da Tabela Final abaixo para responder à pergunta do usuário de forma clara e objetiva.
+
+            Resultados consolidados (JSON): {json.dumps(data_sample, default=str)}
             Pergunta: {user_question}
             """
 
