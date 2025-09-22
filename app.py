@@ -33,17 +33,31 @@ if file_entrantes and file_tma:
 
     # Pré-processamento
     df_inicial['Date'] = pd.to_datetime(df_inicial['Date']).dt.date
-    df_entrantes = df_inicial.pivot_table(index='Hour', columns='Date', values='Entrantes', aggfunc='sum', fill_value=0)
+    df_entrantes = df_inicial.pivot_table(
+        index='Hour', 
+        columns='Date', 
+        values='Entrantes', 
+        aggfunc='sum', 
+        fill_value=0
+    )
 
     stacked = df_entrantes.stack().reset_index(name='Entrantes')
-    top5 = stacked.groupby('Hour')['Entrantes'].nlargest(5).groupby('Hour').mean().reset_index(name='Media_pico')
+    top5 = (
+        stacked.groupby('Hour')['Entrantes']
+        .nlargest(5)
+        .groupby('Hour').mean()
+        .reset_index(name='Media_pico')
+    )
     df_entrantes = df_entrantes.merge(top5, left_index=True, right_on='Hour').set_index('Hour')
 
     colunas_para_media = [col for col in df_entrantes.columns if col not in ['Media_pico']]
     stacked = df_entrantes[colunas_para_media].stack().reset_index(name='Entrantes')
-    media_vale = (stacked.groupby('Hour')['Entrantes']
-                  .apply(lambda x: x.sort_values(ascending=False).iloc[5:])
-                  .groupby('Hour').mean().reset_index(name='madia_vale'))
+    media_vale = (
+        stacked.groupby('Hour')['Entrantes']
+        .apply(lambda x: x.sort_values(ascending=False).iloc[5:])
+        .groupby('Hour').mean()
+        .reset_index(name='madia_vale')
+    )
     df_entrantes = df_entrantes.merge(media_vale, left_index=True, right_on='Hour').set_index('Hour')
 
     cols_to_average = [col for col in df_entrantes.columns if col not in ['Media_pico', 'madia_vale']]
@@ -64,7 +78,9 @@ if file_entrantes and file_tma:
         return pd.NaT
 
     df_TMA['Average Talk Time'] = df_TMA['Average Talk Time'].apply(parse_minutes_seconds)
-    df_TMA['Average Talk Time (seconds)'] = df_TMA['Average Talk Time'].apply(lambda x: x.total_seconds() if pd.notnull(x) else None)
+    df_TMA['Average Talk Time (seconds)'] = df_TMA['Average Talk Time'].apply(
+        lambda x: x.total_seconds() if pd.notnull(x) else None
+    )
     df_TMA['Average Talk Time (seconds)'] = df_TMA['Average Talk Time (seconds)'].fillna(0).astype(int)
 
     # Merge
@@ -85,10 +101,18 @@ if file_entrantes and file_tma:
     ajuste = (1 + pausa) * (1 + absenteismo)
 
     df_entrantes['Qtd_Slots'] = quantidade_slots
-    df_entrantes['Capacity_Calculado'] = (df_entrantes['media_geral'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots
-    df_entrantes['Capacity_Calculado_pico'] = np.ceil((df_entrantes['Media_pico'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots).astype(int)
-    df_entrantes['Capacity_Calculado_vale'] = np.ceil((df_entrantes['madia_vale'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) / 3600 / quantidade_slots).astype(int)
-    df_entrantes['Capacity_Calculado'] = df_entrantes['Capacity_Calculado'].astype(int)
+    df_entrantes['Capacity_Calculado'] = np.ceil(
+        (df_entrantes['media_geral'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) 
+        / 3600 / quantidade_slots
+    ).astype(int)
+    df_entrantes['Capacity_Calculado_pico'] = np.ceil(
+        (df_entrantes['Media_pico'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) 
+        / 3600 / quantidade_slots
+    ).astype(int)
+    df_entrantes['Capacity_Calculado_vale'] = np.ceil(
+        (df_entrantes['madia_vale'] * df_entrantes['Average Talk Time (seconds)'] * ajuste) 
+        / 3600 / quantidade_slots
+    ).astype(int)
 
     # Resultado
     st.header("📊 Resultados e Tabela Final")
@@ -97,7 +121,11 @@ if file_entrantes and file_tma:
     # Exportação
     to_excel = io.BytesIO()
     df_entrantes.to_excel(to_excel, index=True)
-    st.download_button("📥 Baixar resultado em Excel", data=to_excel.getvalue(), file_name="df_entrantes.xlsx")
+    st.download_button(
+        "📥 Baixar resultado em Excel", 
+        data=to_excel.getvalue(), 
+        file_name="df_entrantes.xlsx"
+    )
 
     # 📈 Linha de capacidade
     st.subheader("📈 Capacity calculado por hora")
